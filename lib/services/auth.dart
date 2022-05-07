@@ -12,12 +12,11 @@ class Auth extends ChangeNotifier {
   bool get authenticated => _isLoggedIn;
   User get user => _user;
 
-  final storage = new FlutterSecureStorage();
+  final storage = const FlutterSecureStorage();
 
   void register({required Map creds}) async {
-    
     try {
-      Dio.Response response = await dio().post('/auth/register', data: creds);
+      Dio.Response response = await dio().post('/register', data: creds);
       print(response.data.toString());
       notifyListeners();
     } catch (e) {
@@ -26,14 +25,10 @@ class Auth extends ChangeNotifier {
   }
 
   void login({required Map creds}) async {
-    print(creds);
-
     try {
-      Dio.Response response = await dio().post('/sanctum/token', data: creds);
-      print(response.data.toString());
-
-      String token = response.data.toString();
-      this.tryToken(token: token);
+      Dio.Response response = await dio().post('/login', data: creds);
+      String token = response.data['access_token'].toString();
+      tryToken(token: token);
       _isLoggedIn = true;
       notifyListeners();
     } catch (e) {
@@ -46,14 +41,13 @@ class Auth extends ChangeNotifier {
       return;
     } else {
       try {
-        Dio.Response response = await dio().get('/user',
-            options: Dio.Options(headers: {'Authorization': 'Bearer $token'}));
-        this._isLoggedIn = true;
-        this._user = User.fromJson(response.data);
-        this._token = token;
-        this.storeToken(token: token);
+        Dio.Response response = await dio().post('/profile',
+        options: Dio.Options(headers: {'Authorization': 'Bearer $token'}));
+        _isLoggedIn = true;
+        _user = User.fromJson(response.data);
+        _token = token;
+        storeToken(token: token);
         notifyListeners();
-        print(_user);
       } catch (e) {
         print(e);
       }
@@ -61,14 +55,13 @@ class Auth extends ChangeNotifier {
   }
 
   void storeToken({required String token}) async {
-    this.storage.write(key: 'token', value: token);
+    storage.write(key: 'token', value: token);
   }
 
   void logout() async {
     try {
-      Dio.Response response = await dio().get('/user/revoke',
-          options: Dio.Options(headers: {'Authorization': 'Bearer $_token'}));
-
+      Dio.Response response = await dio().post('/logout',
+      options: Dio.Options(headers: {'Authorization': 'Bearer $_token'}));
       cleanUp();
       notifyListeners();
     } catch (e) {
@@ -77,7 +70,7 @@ class Auth extends ChangeNotifier {
   }
 
   void cleanUp() async {
-    this._isLoggedIn = false;
+    _isLoggedIn = false;
     await storage.delete(key: 'token');
   }
 }

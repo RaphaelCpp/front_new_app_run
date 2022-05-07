@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'package:running_app/main.dart';
 import 'package:running_app/services/geolocator_service.dart';
-import 'dart:math';
+import 'package:dio/dio.dart';
+import 'package:running_app/view/view_list_run.dart';
 
 class Mapping extends StatefulWidget{
   const Mapping({Key? key}) : super(key: key);
@@ -17,8 +21,7 @@ class _MappingState extends State<Mapping>
 {
   double distance = 0.0;
   double speedInMps = 0;
-  double totalDistance = 0.0;
-  bool startCapture = true;
+  bool startCapture = false;
   static const countDuration = Duration();
   Duration duration = Duration();
   Timer? timer;
@@ -26,7 +29,7 @@ class _MappingState extends State<Mapping>
   Position? _position;
   final GeolocatorService geoService = GeolocatorService();
   final Completer<GoogleMapController> _controller = Completer();
-
+  final dio = new Dio();
   List<LatLng> routeCoords = []; 
   Set<Polyline> polylineCoordinates = {};
   PolylinePoints polylinePoints = PolylinePoints();
@@ -49,6 +52,26 @@ class _MappingState extends State<Mapping>
       _position = position;
     });
   }
+
+  void sendData(latlong, timer, km) async{
+    //var vitesseMoy = (km/timer);
+    print(km);
+    print(Duration(minutes: timer));
+    //print(vitesseMoy);
+    // var data = 
+    // {
+    //   "lat_long":latlong.toString(),
+    //   "time":timer.toString(),
+    //   "km":km,
+    //   "user_id":3,
+    // };
+    // var url = "http://10.0.2.2:8000/api/run";
+    // var response = await dio.post(url, data: jsonEncode(data));
+    // Navigator.of(context).push(MaterialPageRoute(builder: (context)=> const BottomNavBar()));
+
+  }
+
+
   Widget buildTime(){
     String twoDigits(int n) => n.toString().padLeft(2,'0');
     final hours =twoDigits(duration.inHours);
@@ -79,12 +102,17 @@ Widget buildButtons(){
            onClicked: (){
              if (isRunning){
                stopTimer(resets: false);
+              setState(() {
+                startCapture = false;
+            });
              }
            }),
        SizedBox(width: 2),
        ButtonWidget(
            text: "TERMINER",
-           onClicked: stopTimer
+           onClicked: (){
+             stopTimer();
+            }
        ),
      ],
    )
@@ -93,6 +121,9 @@ Widget buildButtons(){
        color: Colors.black,
        backgroundColor: Colors.white,
        onClicked: (){
+         setState(() {
+          startCapture = true;
+         });
          startTimer();
        });
 }
@@ -105,31 +136,35 @@ Widget buildButtons(){
           duration = Duration());
       }
     }
+
     void startTimer(){
-      if(startCapture){
-      timer = Timer.periodic(Duration(seconds: 1),(_) => addTime());
+        timer = Timer.periodic(Duration(seconds: 1),(_) => addTime());
         Timer.periodic(const Duration(seconds: 1), (timer) {
         geoService.getCurrentLocation().listen((position) {
         centerScreen(position);
-        for(var i = 0; i < routeCoords.length-1; i++){
-        totalDistance += calculateDistance(
-          routeCoords[i].latitude, 
-          routeCoords[i].longitude, 
-          routeCoords[i+1].latitude, 
-          routeCoords[i+1].longitude);
-        }
-        setState(() {
-          speedInMps = position.speed * 3.6;
-          routeCoords.add(LatLng(position.latitude, position.longitude));
-          distance = totalDistance;
+          if(startCapture){
+            double totalDistance = 0;
+            for(int i = 0; i < routeCoords.length-1; i++){
+            totalDistance += calculateDistance(
+              routeCoords[i].latitude, 
+              routeCoords[i].longitude, 
+              routeCoords[i+1].latitude, 
+              routeCoords[i+1].longitude
+              );
+            }
+            polylineCoordinates.add(Polyline(polylineId: const PolylineId("test"), points: routeCoords, width: 3, color: (Color.fromARGB(255, 192, 132, 245))));
+
+            setState(() {
+              speedInMps = position.speed * 3.6;
+              routeCoords.add(LatLng(position.latitude, position.longitude));
+              distance = totalDistance;
+            });
+          }else{
+            timer.cancel();
+          }
         });
-    });
-  });
-      polylineCoordinates.add(Polyline(polylineId: const PolylineId("test"), points: routeCoords, width: 3, color: (Color.fromARGB(255, 192, 132, 245))));
-    }else{
-      print("stop");
+      });
     }
-  }
     void addTime(){
       final addSeconds = 1;
       setState(() {
@@ -138,21 +173,19 @@ Widget buildButtons(){
       });
     }
     void stopTimer({bool resets = true}){
+      final time = duration;
       if (resets){
         reset();
+        sendData(routeCoords, time, distance);
       }
-      setState(() {
-        startCapture = false;
-      });
-
       setState(() => timer?.cancel());
     }
 
   @override
   void initState(){
   super.initState();
-  reset();
   getLocation();
+  reset();
  }
 
   @override
