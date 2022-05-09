@@ -65,7 +65,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
         height: 60,
         color: Colors.white,
         backgroundColor: Colors.transparent,
-        buttonBackgroundColor: Color.fromRGBO(231, 76, 60, 1),
+        buttonBackgroundColor: Color.fromARGB(255, 50, 245, 160),
         animationCurve: Curves.easeInOut,
         animationDuration: Duration(milliseconds: 500),
         onTap: (index) => setState(() => this.index = index),

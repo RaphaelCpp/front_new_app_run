@@ -9,6 +9,8 @@ import 'package:running_app/main.dart';
 import 'package:running_app/services/geolocator_service.dart';
 import 'package:dio/dio.dart';
 import 'package:running_app/view/view_list_run.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 
 class Mapping extends StatefulWidget{
   const Mapping({Key? key}) : super(key: key);
@@ -33,6 +35,7 @@ class _MappingState extends State<Mapping>
   List<LatLng> routeCoords = []; 
   Set<Polyline> polylineCoordinates = {};
   PolylinePoints polylinePoints = PolylinePoints();
+  final storage = new FlutterSecureStorage();
 
   static const _initialPositionCamera = CameraPosition(target: LatLng(43.604, 1.44305 ),
      zoom: 16.5,
@@ -54,20 +57,21 @@ class _MappingState extends State<Mapping>
   }
 
   void sendData(latlong, timer, km) async{
-    //var vitesseMoy = (km/timer);
-    print(km);
-    print(Duration(minutes: timer));
-    //print(vitesseMoy);
-    // var data = 
-    // {
-    //   "lat_long":latlong.toString(),
-    //   "time":timer.toString(),
-    //   "km":km,
-    //   "user_id":3,
-    // };
-    // var url = "http://10.0.2.2:8000/api/run";
-    // var response = await dio.post(url, data: jsonEncode(data));
-    // Navigator.of(context).push(MaterialPageRoute(builder: (context)=> const BottomNavBar()));
+          
+    String? userId = await storage.read(key: 'userId');
+
+    var data = 
+    {
+      "lat_long":latlong.toString(),
+      "time":timer.toString(),
+      "km":km,
+      "user_id":userId,
+    };
+  
+    var url = "http://10.0.2.2:8000/api/run";
+    var response = await dio.post(url, data: jsonEncode(data));
+    
+    Navigator.of(context).push(MaterialPageRoute(builder: (context)=> BottomNavBar()));
 
   }
 

@@ -5,13 +5,14 @@ import 'package:provider/provider.dart';
 import 'package:running_app/main.dart';
 import 'package:running_app/services/auth.dart';
 import 'package:running_app/view/view_mapping.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:running_app/view/view_register.dart';
-
+ 
 class LoginView extends StatefulWidget {
   @override
   _LoginViewState createState() => _LoginViewState();
 }
-
+ 
 class _LoginViewState extends State<LoginView> {
   TextEditingController _emailController =
       TextEditingController(text: "raph.admin@gmail.com");
@@ -19,17 +20,26 @@ class _LoginViewState extends State<LoginView> {
       TextEditingController(text: "password");
   final _formKey = GlobalKey<FormState>();
 
+    final storage = new FlutterSecureStorage();
+
+    void readToken() async {
+    String? token = await storage.read(key: 'token');
+    Provider.of<Auth>(context, listen: false).tryToken(token: token);
+        
+    //print(token);
+  }
+ 
   @override
   void initState() {
     super.initState();
   }
-
+ 
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
-
+ 
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -153,9 +163,11 @@ class _LoginViewState extends State<LoginView> {
                           if (_formKey.currentState!.validate()) {
                             Provider.of<Auth>(context, listen: false)
                                 .login(creds: creds);
-                            Navigator.of(context).pushReplacement(
+                                
+                               Navigator.of(context).pushReplacement(
                                 MaterialPageRoute(
                                     builder: (context) => BottomNavBar()));
+                          
                           }
                         },
                       ),
@@ -169,13 +181,18 @@ class _LoginViewState extends State<LoginView> {
                     padding: EdgeInsets.all(
                         MediaQuery.of(context).size.width * 0.03),
                     child: Center(
-                      child: Text(
-                        'Pas encore inscrit ? Créer un compte',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: FlatButton(
+                        child: Text('Pas encore inscrit ? Créer un compte',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              decoration: TextDecoration.underline,
+                            )),
+                        onPressed: () {
+                          Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => RegisterView()));
+                        },
                       ),
                     ),
                   ),

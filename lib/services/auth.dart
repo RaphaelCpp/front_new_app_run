@@ -1,13 +1,19 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart' as Dio;
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:running_app/services/dio.dart';
 import 'package:running_app/models/user.dart';
+import 'package:running_app/view/view_home.dart';
 
 class Auth extends ChangeNotifier {
   bool _isLoggedIn = false;
   late User _user;
   late String _token;
+  late final _userId;
+
+  late BuildContext context;
 
   bool get authenticated => _isLoggedIn;
   User get user => _user;
@@ -46,7 +52,8 @@ class Auth extends ChangeNotifier {
         _isLoggedIn = true;
         _user = User.fromJson(response.data);
         _token = token;
-        storeToken(token: token);
+        _userId = response.data['id'].toString();
+        storeToken(token: token, userId: _userId);
         notifyListeners();
       } catch (e) {
         print(e);
@@ -54,8 +61,9 @@ class Auth extends ChangeNotifier {
     }
   }
 
-  void storeToken({required String token}) async {
+  void storeToken({required String token, required String userId}) async {
     storage.write(key: 'token', value: token);
+    storage.write(key: 'userId', value: userId);
   }
 
   void logout() async {
@@ -71,6 +79,7 @@ class Auth extends ChangeNotifier {
 
   void cleanUp() async {
     _isLoggedIn = false;
-    await storage.delete(key: 'token');
+    await storage.deleteAll();
+  
   }
 }
